@@ -56,5 +56,9 @@ COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
 COPY apps/cad-api/entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
+# Files needed to run integration tests inside the container
+COPY tsconfig.base.json ./tsconfig.base.json
+COPY apps/cad-api/vitest.config.js ./apps/cad-api/vitest.config.js
+COPY step-files ./apps/cad-api/step-files
 EXPOSE 3000
 ENTRYPOINT ["./entrypoint.sh"]

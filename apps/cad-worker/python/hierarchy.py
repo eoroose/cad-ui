@@ -3,7 +3,7 @@ import json
 import uuid
 from typing import Optional
 from OCC.Core.XCAFDoc import XCAFDoc_DocumentTool
-from OCC.Core.TDF import TDF_LabelSequence
+from OCC.Core.TDF import TDF_LabelSequence, TDF_AttributeIterator
 from OCC.Core.TDataStd import TDataStd_Name
 from OCC.Core.XCAFDoc import XCAFDoc_Location
 from OCC.Core.gp import gp_Trsf
@@ -26,22 +26,34 @@ def _trsf_to_matrix16(trsf: gp_Trsf) -> list:
 
 
 def _get_name(label) -> Optional[str]:
-    """Read TDataStd_Name from label, return None if absent."""
-    name_attr = TDataStd_Name()
-    if label.FindAttribute(TDataStd_Name.GetID_s(), name_attr):
-        return name_attr.Get().ToCString()
+    """Read TDataStd_Name from label via attribute iterator (FindAttribute not usable — TDataStd_Name
+    is not a TDF_Attribute subclass in this pythonocc binding)."""
+    name_guid = TDataStd_Name.GetID()
+    it = TDF_AttributeIterator(label)
+    while it.More():
+        attr = it.Value()
+        if attr.ID() == name_guid:
+            # Iterator returns actual subtype via SWIG polymorphic dispatch
+            if hasattr(attr, 'Get'):
+                return attr.Get().ToCString()
+            # Fallback: DownCast from handle<Standard_Transient>
+            try:
+                name_attr = TDataStd_Name.DownCast(attr)
+                if name_attr is not None:
+                    return name_attr.Get().ToCString()
+            except Exception:
+                pass
+        it.Next()
     return None
 
 
 def _get_transform_matrix(label) -> list:
     """Read XCAFDoc_Location from label as flat 16-float row-major matrix."""
     loc_attr = XCAFDoc_Location()
-    if label.FindAttribute(XCAFDoc_Location.GetID_s(), loc_attr):
-        trsf = loc_attr.Get().IsIdentity() and gp_Trsf() or loc_attr.Get().IsTopLevel() and loc_attr.Get().Location()
-        # Use the simpler approach: get TopLoc_Location then gp_Trsf
-        top_loc = loc_attr.GetLocation()
-        trsf = top_loc.IsIdentity() and gp_Trsf() or top_loc.Location()
-        return _trsf_to_matrix16(trsf)
+    if label.FindAttribute(XCAFDoc_Location.GetID(), loc_attr):
+        top_loc = loc_attr.Get()
+        if not top_loc.IsIdentity():
+            return _trsf_to_matrix16(top_loc.Transformation())
     return [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]
 
 
@@ -73,11 +85,10 @@ def build_node_list(doc) -> list:
         # Build identity matrix as default
         transform_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]
         loc_attr = XCAFDoc_Location()
-        if label.FindAttribute(XCAFDoc_Location.GetID_s(), loc_attr):
-            top_loc = loc_attr.GetLocation()
+        if label.FindAttribute(XCAFDoc_Location.GetID(), loc_attr):
+            top_loc = loc_attr.Get()
             if not top_loc.IsIdentity():
-                trsf = top_loc.IsTopLevel() and top_loc.Location() or gp_Trsf()
-                transform_matrix = _trsf_to_matrix16(trsf)
+                transform_matrix = _trsf_to_matrix16(top_loc.Transformation())
 
         nodes.append({
             'id': node_id,
@@ -93,7 +104,8 @@ def build_node_list(doc) -> list:
         for i in range(1, components.Size() + 1):
             visit(components.Value(i), node_id)
 
-    free_shapes = shape_tool.GetFreeShapes()
+    free_shapes = TDF_LabelSequence()
+    shape_tool.GetFreeShapes(free_shapes)
     for i in range(1, free_shapes.Size() + 1):
         visit(free_shapes.Value(i), None)
 

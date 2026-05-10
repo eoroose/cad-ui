@@ -3,7 +3,7 @@ import { PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createId } from '@paralleldrive/cuid2';
 import { prisma } from '../lib/prisma.js';
-import { s3, rewritePresignedUrl } from '../lib/s3.js';
+import { s3, s3Public } from '../lib/s3.js';
 import { cadQueue } from '../lib/queue.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { validate, asyncHandler } from '../middleware/validate.js';
@@ -47,8 +47,7 @@ router.post(
       ContentType: contentType,
       ContentLength: sizeBytes,
     });
-    const rawUrl = await getSignedUrl(s3, command, { expiresIn: PRESIGN_TTL });
-    const uploadUrl = rewritePresignedUrl(rawUrl);
+    const uploadUrl = await getSignedUrl(s3Public, command, { expiresIn: PRESIGN_TTL });
     const expiresAt = new Date(Date.now() + PRESIGN_TTL * 1000).toISOString();
 
     // Create Scene + Asset records

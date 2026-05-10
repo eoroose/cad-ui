@@ -3,6 +3,7 @@ from OCC.Core.STEPCAFControl import STEPCAFControl_Reader
 from OCC.Core.TDocStd import TDocStd_Document
 from OCC.Core.IFSelect import IFSelect_RetDone
 from OCC.Core.XCAFDoc import XCAFDoc_DocumentTool
+from OCC.Core.TDF import TDF_LabelSequence
 
 
 class HierarchyLossError(Exception):
@@ -30,7 +31,8 @@ def parse_step(step_path: str) -> TDocStd_Document:
 
     # Validate that we got assembly hierarchy
     shape_tool = XCAFDoc_DocumentTool.ShapeTool(doc.Main())
-    free_shapes = shape_tool.GetFreeShapes()
+    free_shapes = TDF_LabelSequence()
+    shape_tool.GetFreeShapes(free_shapes)
     if free_shapes.Size() == 0:
         raise HierarchyLossError('XDE returned 0 free shapes — STEP may lack hierarchy')
 

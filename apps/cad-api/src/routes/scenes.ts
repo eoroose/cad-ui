@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '../lib/prisma.js';
-import { s3, rewritePresignedUrl } from '../lib/s3.js';
+import { s3, s3Public } from '../lib/s3.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { asyncHandler } from '../middleware/validate.js';
 
@@ -11,8 +11,8 @@ const PRESIGN_TTL = 3600;
 
 async function getPresignedGetUrl(key: string): Promise<string> {
   const command = new GetObjectCommand({ Bucket: process.env.S3_BUCKET!, Key: key });
-  const url = await getSignedUrl(s3, command, { expiresIn: PRESIGN_TTL });
-  return rewritePresignedUrl(url);
+  const url = await getSignedUrl(s3Public, command, { expiresIn: PRESIGN_TTL });
+  return url;
 }
 
 router.get(

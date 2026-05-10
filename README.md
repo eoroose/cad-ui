@@ -117,6 +117,35 @@ docker compose build cad-api && docker compose up -d --no-deps cad-api
 
 ---
 
+## Testing
+
+### Integration Test — Full Upload Pipeline
+
+The integration test exercises the complete pipeline end-to-end:
+login → presign → upload STEP to MinIO → confirm → poll job → verify scene is `READY`.
+
+The test runs **inside the `cad-api` container** (so it can reach all services via the Docker network). All services must be running first.
+
+```bash
+# 1. Make sure all services are up
+docker compose up -d
+
+# 2. Run the integration test
+docker compose exec cad-api sh -c \
+  "/app/apps/cad-api/node_modules/.bin/vitest run --config /app/apps/cad-api/vitest.config.js"
+```
+
+Expected output:
+```
+✓ Full upload pipeline > processes assembly.step to READY  ~9s
+Test Files  1 passed (1)
+Tests       1 passed (1)
+```
+
+The test uses `step-files/assembly.step` as the input file and logs in as `dev@example.com` / `password`.
+
+---
+
 ## Architecture
 
 ### Component Overview

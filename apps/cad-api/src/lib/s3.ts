@@ -2,6 +2,7 @@ import { S3Client } from '@aws-sdk/client-s3';
 
 const isMinIO = !!process.env.S3_ENDPOINT;
 
+// Internal client: used for server-side operations (HeadObject, GetObject, etc.)
 export const s3 = new S3Client({
   region: process.env.AWS_REGION ?? 'us-east-1',
   ...(isMinIO && {
@@ -14,13 +15,14 @@ export const s3 = new S3Client({
   },
 });
 
-/**
- * Rewrite presigned URL hostname from container-internal (minio:9000)
- * to browser-accessible (localhost:9000) before returning to client.
- */
-export function rewritePresignedUrl(url: string): string {
-  const publicBase = process.env.PUBLIC_MINIO_URL;
-  const internalBase = process.env.S3_ENDPOINT;
-  if (!publicBase || !internalBase || !isMinIO) return url;
-  return url.replace(internalBase, publicBase);
-}
+// Public client: used for presigning URLs that the browser will use directly.
+// Must use the public-facing endpoint so the SigV4 Host header matches what the browser hits.
+export const s3Public = new S3Client({
+  region: process.env.AWS_REGION ?? 'us-east-1',
+  endpoint: process.env.PUBLIC_MINIO_URL ?? process.env.S3_ENDPOINT,
+  forcePathStyle: true,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});

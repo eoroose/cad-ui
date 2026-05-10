@@ -1,6 +1,7 @@
 """Apply BRepMesh_IncrementalMesh tessellation to all shapes in XDE document."""
 from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
 from OCC.Core.XCAFDoc import XCAFDoc_DocumentTool
+from OCC.Core.TDF import TDF_LabelSequence
 
 
 def tessellate(
@@ -10,7 +11,8 @@ def tessellate(
 ) -> None:
     """Tessellate all free shapes in the XDE document in-place."""
     shape_tool = XCAFDoc_DocumentTool.ShapeTool(doc.Main())
-    free_shapes = shape_tool.GetFreeShapes()
+    free_shapes = TDF_LabelSequence()
+    shape_tool.GetFreeShapes(free_shapes)
     total = free_shapes.Size()
 
     for i in range(1, total + 1):

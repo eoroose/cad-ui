@@ -7,3 +7,4 @@ postgres-data/
 *.log
 .DS_Store
 doc/
+*.step

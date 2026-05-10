@@ -43,10 +43,10 @@ def upload_results(
                     """
                     UPDATE scenes
                     SET status = 'READY',
-                        merged_glb_key = %s,
-                        scene_json_key = %s,
-                        node_count = %s,
-                        updated_at = now()
+                        "mergedGlbKey" = %s,
+                        "sceneJsonKey" = %s,
+                        "nodeCount" = %s,
+                        "updatedAt" = now()
                     WHERE id = %s
                     """,
                     (glb_key, json_key, node_count, scene_id),
@@ -70,9 +70,9 @@ def upload_results(
                         cur,
                         """
                         INSERT INTO scene_nodes
-                            (id, scene_id, external_id, name, parent_id, transform_matrix, joint_axis, created_at, updated_at)
+                            (id, "sceneId", "externalId", name, "parentId", "transformMatrix", "jointAxis", "createdAt", "updatedAt")
                         VALUES %s
-                        ON CONFLICT (scene_id, external_id) DO NOTHING
+                        ON CONFLICT ("sceneId", "externalId") DO NOTHING
                         """,
                         [
                             (r[0], r[1], r[2], r[3], r[4], r[5], r[6], 'now()', 'now()')
@@ -87,9 +87,9 @@ def upload_results(
                     UPDATE jobs
                     SET status = 'COMPLETED',
                         progress = 100,
-                        completed_at = now(),
-                        updated_at = now()
-                    WHERE id = %s
+                        "completedAt" = now(),
+                        "updatedAt" = now()
+                    WHERE "bullJobId" = %s
                     """,
                     (job_id,),
                 )
