@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.turbo/
+minio-data/
+postgres-data/
+*.log
+.DS_Store
+doc/

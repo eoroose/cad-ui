@@ -1,0 +1,44 @@
+{
+  "name": "@cad/api",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
+  "prisma": {
+    "schema": "../../prisma/schema.prisma"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3",
+    "@aws-sdk/s3-request-presigner": "^3",
+    "@paralleldrive/cuid2": "^2",
+    "@prisma/client": "5.22.0",
+    "bcrypt": "^5",
+    "bullmq": "^5",
+    "cookie-parser": "^1",
+    "cors": "^2",
+    "express": "^4",
+    "express-rate-limit": "^7",
+    "helmet": "^7",
+    "ioredis": "^5",
+    "jsonwebtoken": "^9",
+    "zod": "^3",
+    "@cad/shared-types": "workspace:*",
+    "@cad/scene-schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5",
+    "@types/cookie-parser": "^1",
+    "@types/cors": "^2",
+    "@types/express": "^4",
+    "@types/jsonwebtoken": "^9",
+    "@types/node": "^20",
+    "prisma": "5.22.0",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}

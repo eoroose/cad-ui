@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SceneStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum JobStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  FAILED
+}
+
+enum AssetType {
+  STEP
+  GLB
+  SCENE_JSON
+  THUMBNAIL
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  passwordHash  String
+  createdAt     DateTime       @default(now())
+  scenes        Scene[]
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Scene {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  status          SceneStatus @default(PENDING)
+  originalStepKey String
+  sceneJsonKey    String?
+  mergedGlbKey    String?
+  nodeCount       Int?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  jobs            Job[]
+  assets          Asset[]
+  nodes           SceneNode[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("scenes")
+}
+
+model Job {
+  id           String    @id @default(cuid())
+  sceneId      String
+  scene        Scene     @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  bullJobId    String    @unique
+  status       JobStatus @default(PENDING)
+  progress     Int       @default(0)
+  errorMessage String?
+  workerPid    Int?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([sceneId])
+  @@index([bullJobId])
+  @@index([status])
+  @@index([sceneId, createdAt(sort: Desc)])
+  @@map("jobs")
+}
+
+model Asset {
+  id        String    @id @default(cuid())
+  sceneId   String
+  scene     Scene     @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  assetType AssetType
+  s3Key     String    @unique
+  sizeBytes BigInt
+  mimeType  String
+  createdAt DateTime  @default(now())
+
+  @@index([sceneId])
+  @@index([sceneId, assetType])
+  @@map("assets")
+}
+
+model SceneNode {
+  id              String   @id @default(cuid())
+  sceneId         String
+  scene           Scene    @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  externalId      String
+  name            String
+  parentId        String?
+  transformMatrix Float[]
+  meshAssetId     String?
+  jointType       String?
+  jointAxis       Float[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([sceneId, externalId])
+  @@index([sceneId])
+  @@index([parentId])
+  @@index([sceneId, parentId])
+  @@map("scene_nodes")
+}

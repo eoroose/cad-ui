@@ -1,0 +1,11 @@
+name: cad
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pythonocc-core=7.9.3
+  - boto3
+  - psycopg2
+  - pygltflib
+  - pip

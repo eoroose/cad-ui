@@ -1,0 +1,160 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: caduser
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: cadplatform
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caduser -d cadplatform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - cad-network
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cad-network
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - cad-network
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+        mc mb --ignore-existing local/$$S3_BUCKET &&
+        echo "Bucket ready: $$S3_BUCKET"
+    env_file:
+      - ".env"
+    networks:
+      - cad-network
+
+  cad-api:
+    build:
+      context: .
+      dockerfile: apps/cad-api/Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ".env"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://caduser:${POSTGRES_PASSWORD}@postgres:5432/cadplatform
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      PUBLIC_MINIO_URL: http://localhost:9000
+      S3_BUCKET: ${S3_BUCKET}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      AWS_REGION: us-east-1
+      ALLOWED_ORIGINS: http://localhost:5173
+      JWT_EXPIRY: 3600
+      REFRESH_TOKEN_EXPIRY_DAYS: 7
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - cad-network
+
+  cad-worker:
+    build:
+      context: .
+      dockerfile: apps/cad-worker/Dockerfile
+    env_file:
+      - ".env"
+    environment:
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://caduser:${POSTGRES_PASSWORD}@postgres:5432/cadplatform
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: ${S3_BUCKET}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      AWS_REGION: us-east-1
+      WORKER_PORT: 3001
+      WORKER_CONCURRENCY: 2
+      WORKER_LOCK_DURATION_MS: 600000
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - cad-network
+
+  cad-viewer-web:
+    build:
+      context: .
+      dockerfile: apps/cad-viewer-web/Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE_URL: http://localhost:3000/api/v1
+    depends_on:
+      - cad-api
+    networks:
+      - cad-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+
+networks:
+  cad-network:
+    driver: bridge
