@@ -26,23 +26,35 @@ def _trsf_to_matrix16(trsf: gp_Trsf) -> list:
 
 
 def _get_name(label) -> Optional[str]:
-    """Read TDataStd_Name from label via attribute iterator (FindAttribute not usable — TDataStd_Name
-    is not a TDF_Attribute subclass in this pythonocc binding)."""
+    """Read TDataStd_Name from label. Tries FindAttribute first; falls back to iterator."""
+    # Primary: FindAttribute (works in most pythonocc builds)
+    try:
+        name_attr = TDataStd_Name()
+        if label.FindAttribute(TDataStd_Name.GetID(), name_attr):
+            val = name_attr.Get().ToCString()
+            if val:
+                return val
+    except Exception:
+        pass
+
+    # Fallback: attribute iterator with IsEqual (== does reference comparison on SWIG GUIDs)
     name_guid = TDataStd_Name.GetID()
     it = TDF_AttributeIterator(label)
     while it.More():
         attr = it.Value()
-        if attr.ID() == name_guid:
-            # Iterator returns actual subtype via SWIG polymorphic dispatch
-            if hasattr(attr, 'Get'):
-                return attr.Get().ToCString()
-            # Fallback: DownCast from handle<Standard_Transient>
-            try:
+        try:
+            if attr.ID().IsEqual(name_guid):
+                if hasattr(attr, 'Get'):
+                    val = attr.Get().ToCString()
+                    if val:
+                        return val
                 name_attr = TDataStd_Name.DownCast(attr)
                 if name_attr is not None:
-                    return name_attr.Get().ToCString()
-            except Exception:
-                pass
+                    val = name_attr.Get().ToCString()
+                    if val:
+                        return val
+        except Exception:
+            pass
         it.Next()
     return None
 

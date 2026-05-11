@@ -19,6 +19,22 @@ from scene_writer import write_scene_json
 from uploader import upload_results
 
 
+def _backfill_names(db_nodes, glb_nodes, glb_node_idx, db_parent_id=None, visited=None):
+    """Recursively map GLB node names onto DB nodes by matching traversal order."""
+    if visited is None:
+        visited = set()
+    glb_node = glb_nodes[glb_node_idx]
+    candidates = [n for n in db_nodes if n['parentId'] == db_parent_id and n['id'] not in visited]
+    if not candidates:
+        return
+    db_node = candidates[0]
+    visited.add(db_node['id'])
+    if glb_node.name:
+        db_node['name'] = glb_node.name
+    for child_glb_idx in (glb_node.children or []):
+        _backfill_names(db_nodes, glb_nodes, child_glb_idx, db_node['id'], visited)
+
+
 def main():
     parser = argparse.ArgumentParser(description='CAD processing pipeline')
     parser.add_argument('--job-id', required=True)
@@ -49,6 +65,17 @@ def main():
 
         # 5. Build node hierarchy
         nodes = build_node_list(doc)
+
+        # 5b. Backfill real names from GLB — TDataStd_Name.Get() is not exposed in this
+        # pythonocc binding. RWGltf_CafWriter already resolved names in C++, so read them back.
+        try:
+            import pygltflib
+            gltf = pygltflib.GLTF2().load(str(glb_path))
+            if gltf.scenes and gltf.nodes and nodes:
+                root_idx = gltf.scenes[0].nodes[0] if gltf.scenes[0].nodes else 0
+                _backfill_names(nodes, gltf.nodes, root_idx)
+        except Exception as e:
+            print(f'WARNING: could not backfill names from GLB: {e}', file=sys.stderr)
 
         # 6. Write scene.json
         write_scene_json(args.scene_id, nodes, json_path)  # emits PROGRESS:90

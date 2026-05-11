@@ -12,6 +12,7 @@ function TreeNode({ node, allNodes, depth }: TreeNodeProps) {
   const [expanded, setExpanded] = useState(true);
   const selectedNodeId = useCadStore((s) => s.selectedNodeId);
   const setSelectedNode = useCadStore((s) => s.setSelectedNode);
+  const setHoveredNode = useCadStore((s) => s.setHoveredNode);
 
   const children = allNodes.filter((n) => n.parentId === node.id);
   const hasChildren = children.length > 0;
@@ -24,6 +25,8 @@ function TreeNode({ node, allNodes, depth }: TreeNodeProps) {
           setSelectedNode(isSelected ? null : node.id);
           console.log('Selected node:', node.name, node.id);
         }}
+        onMouseEnter={() => setHoveredNode(node.id)}
+        onMouseLeave={() => setHoveredNode(null)}
         style={{
           display: 'flex',
           alignItems: 'center',
