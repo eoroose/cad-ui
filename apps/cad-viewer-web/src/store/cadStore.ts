@@ -17,6 +17,8 @@ interface CadStore {
   setBgMode: (mode: 'dark' | 'light') => void;
   setActiveJob: (jobId: string, sceneId: string) => void;
   clearActiveJob: () => void;
+  activePanel: 'models' | 'assembly' | null;
+  setActivePanel: (panel: 'models' | 'assembly' | null) => void;
 }
 
 export const useCadStore = create<CadStore>((set) => ({
@@ -35,4 +37,6 @@ export const useCadStore = create<CadStore>((set) => ({
   setBgMode: (mode) => set({ bgMode: mode }),
   setActiveJob: (jobId, sceneId) => set({ activeJobId: jobId, activeSceneId: sceneId }),
   clearActiveJob: () => set({ activeJobId: null, activeSceneId: null }),
+  activePanel: 'models',
+  setActivePanel: (panel) => set({ activePanel: panel }),
 }));

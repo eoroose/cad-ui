@@ -45,7 +45,6 @@ router.post(
       Bucket: bucket,
       Key: s3Key,
       ContentType: contentType,
-      ContentLength: sizeBytes,
     });
     const uploadUrl = await getSignedUrl(s3Public, command, { expiresIn: PRESIGN_TTL });
     const expiresAt = new Date(Date.now() + PRESIGN_TTL * 1000).toISOString();

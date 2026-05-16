@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useCadStore } from '../../store/cadStore';
+import { ActivityBar } from '../sidebar/ActivityBar';
+import SceneListPanel from '../sidebar/SceneListPanel';
 import SceneTreePanel from '../tree/SceneTreePanel';
 import CADCanvas from '../viewer/CADCanvas';
 import UploadModal from '../upload/UploadModal';
@@ -10,6 +12,13 @@ export default function AppLayout() {
   const bumpFitCamera = useCadStore((s) => s.bumpFitCamera);
   const bgMode = useCadStore((s) => s.bgMode);
   const setBgMode = useCadStore((s) => s.setBgMode);
+  const activePanel = useCadStore((s) => s.activePanel);
+  const setActivePanel = useCadStore((s) => s.setActivePanel);
+
+  const panelOpen = activePanel !== null;
+  function handlePanelSelect(panel: 'models' | 'assembly' | null) {
+    setActivePanel(activePanel === panel ? null : panel);
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: bgMode === 'dark' ? '#0f0f0f' : '#f0f0f0' }}>
@@ -38,9 +47,17 @@ export default function AppLayout() {
 
       {/* Main content */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Left sidebar — assembly tree */}
-        <aside style={{ width: '260px', background: '#1a1a1a', borderRight: '1px solid #333', overflow: 'auto', flexShrink: 0 }}>
-          <SceneTreePanel />
+        {/* Left sidebar */}
+        <aside style={{ display:'flex', flexDirection:'row', width: panelOpen ? '260px' : '48px',
+          background:'#1a1a1a', borderRight:'1px solid #333', flexShrink:0,
+          transition:'width 150ms ease-in-out', overflow:'hidden', height:'100%', boxSizing:'border-box' }}>
+          <ActivityBar activePanel={activePanel} onSelect={handlePanelSelect} />
+          {panelOpen && (
+            <div style={{ width:'212px', height:'100%', overflowY:'auto', overflowX:'hidden', flexShrink:0 }}>
+              {activePanel === 'models' && <SceneListPanel onOpenUpload={() => setShowUpload(true)} />}
+              {activePanel === 'assembly' && <SceneTreePanel />}
+            </div>
+          )}
         </aside>
 
         {/* 3D canvas */}

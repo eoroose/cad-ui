@@ -69,8 +69,8 @@ export default function SceneTreePanel() {
   if (!scene) {
     return (
       <div style={{ padding: '1rem', color: '#666', fontSize: '0.85rem' }}>
-        <p>No scene loaded.</p>
-        <p style={{ marginTop: '0.5rem' }}>Upload a STEP file to see the assembly tree.</p>
+        <p>No model loaded.</p>
+        <p style={{ marginTop: '0.5rem' }}>Select a model from Models to begin.</p>
       </div>
     );
   }

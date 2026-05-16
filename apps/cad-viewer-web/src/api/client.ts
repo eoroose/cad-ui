@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import type { PresignResponse, SceneDetailResponse, JobDTO } from '@cad/shared-types';
+import type { PresignResponse, SceneDetailResponse, JobDTO, PaginatedScenesResponse } from '@cad/shared-types';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1';
 
@@ -65,4 +65,11 @@ export async function getJob(jobId: string): Promise<JobDTO> {
 export async function getScene(sceneId: string): Promise<SceneDetailResponse> {
   const res = await api.get(`/scenes/${sceneId}`);
   return res.data;
+}
+
+export function fetchScenes(
+  limit = 20,
+  offset = 0,
+): Promise<PaginatedScenesResponse> {
+  return api.get('/scenes', { params: { limit, offset } }).then((r) => r.data);
 }

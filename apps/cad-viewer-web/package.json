@@ -19,7 +19,8 @@
     "react-hot-toast": "^2",
     "three": "^0.163",
     "zustand": "^4",
-    "@cad/shared-types": "workspace:*"
+    "@cad/shared-types": "workspace:*",
+    "lucide-react": "^0.400.0"
   },
   "devDependencies": {
     "@types/react": "^18",
