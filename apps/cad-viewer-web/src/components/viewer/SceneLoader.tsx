@@ -47,6 +47,15 @@ export default function SceneLoader({ glbUrl }: Props) {
         obj.userData.originalOpacity = obj.material.opacity;
         obj.userData.originalTransparent = obj.material.transparent;
       }
+      // Add permanent thin white base outline to every tagged mesh
+      if (obj.userData.sceneNodeId && !obj.userData.baseOutlineAdded) {
+        const edges = new THREE.EdgesGeometry((obj as THREE.Mesh).geometry, 15);
+        const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3, depthTest: true });
+        const baseOutline = new THREE.LineSegments(edges, lineMat);
+        baseOutline.userData.isBaseOutline = true;
+        obj.add(baseOutline);
+        obj.userData.baseOutlineAdded = true;
+      }
     });
   }, [gltfScene, nodes]);
 
@@ -76,8 +85,8 @@ export default function SceneLoader({ glbUrl }: Props) {
       const hasOutline = wireframeOverrides[id] === true;
       const isTransparent = transparencyOverrides[id] === true;
 
-      // Outline: remove existing edge overlay, then re-add if enabled.
-      // Green + thicker when outline is active (color differentiates from default white edges).
+      // Wireframe outline: remove existing, re-add green version when enabled.
+      // Base outline (isBaseOutline) is hidden while green outline is active.
       const existing = obj.children.filter((c) => c.userData.isOutline);
       existing.forEach((c) => {
         obj.remove(c);
@@ -91,6 +100,10 @@ export default function SceneLoader({ glbUrl }: Props) {
         outline.userData.isOutline = true;
         obj.add(outline);
       }
+      // Show base outline only when green wireframe outline is not active
+      obj.children
+        .filter((c) => c.userData.isBaseOutline)
+        .forEach((c) => { c.visible = !hasOutline; });
 
       // Visibility:
       // - Hidden + no outline  → obj.visible = false (nothing renders)
