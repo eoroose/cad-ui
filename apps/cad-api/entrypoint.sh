@@ -4,8 +4,8 @@ set -e
 PRISMA=/app/node_modules/.bin/prisma
 TSX=/app/node_modules/.bin/tsx
 
-echo "Applying schema to database (db push)..."
-$PRISMA db push --schema /app/prisma/schema.prisma --accept-data-loss
+echo "Applying migrations to database..."
+$PRISMA migrate deploy --schema /app/prisma/schema.prisma
 
 echo "Seeding database..."
 $TSX /app/prisma/seed.ts || echo "Seed skipped"
