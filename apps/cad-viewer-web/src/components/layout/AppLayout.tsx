@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCadStore } from '../../store/cadStore';
 import { ActivityBar } from '../sidebar/ActivityBar';
 import SceneListPanel from '../sidebar/SceneListPanel';
@@ -16,6 +16,24 @@ export default function AppLayout() {
   const setActivePanel = useCadStore((s) => s.setActivePanel);
 
   const panelOpen = activePanel !== null;
+  const [panelWidth, setPanelWidth] = useState(260);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const onMove = (e: MouseEvent) => {
+      const next = Math.max(180, Math.min(500, e.clientX));
+      setPanelWidth(next);
+    };
+    const onUp = () => setIsDragging(false);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, [isDragging]);
+
   function handlePanelSelect(panel: 'models' | 'assembly' | null) {
     setActivePanel(activePanel === panel ? null : panel);
   }
@@ -48,17 +66,24 @@ export default function AppLayout() {
       {/* Main content */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left sidebar */}
-        <aside style={{ display:'flex', flexDirection:'row', width: panelOpen ? '260px' : '48px',
+        <aside style={{ display:'flex', flexDirection:'row', width: panelOpen ? `${panelWidth}px` : '48px',
           background:'#1a1a1a', borderRight:'1px solid #333', flexShrink:0,
-          transition:'width 150ms ease-in-out', overflow:'hidden', height:'100%', boxSizing:'border-box' }}>
+          transition: isDragging ? 'none' : 'width 150ms ease-in-out', overflow:'hidden', height:'100%', boxSizing:'border-box' }}>
           <ActivityBar activePanel={activePanel} onSelect={handlePanelSelect} />
           {panelOpen && (
-            <div style={{ width:'212px', height:'100%', overflowY:'auto', overflowX:'hidden', flexShrink:0 }}>
+            <div style={{ width:`${panelWidth - 48}px`, height:'100%', overflowY:'auto', overflowX:'hidden', flexShrink:0 }}>
               {activePanel === 'models' && <SceneListPanel onOpenUpload={() => setShowUpload(true)} />}
               {activePanel === 'assembly' && <SceneTreePanel />}
             </div>
           )}
         </aside>
+
+        {panelOpen && (
+          <div
+            onMouseDown={(e) => { e.preventDefault(); setIsDragging(true); }}
+            style={{ width: '5px', cursor: 'col-resize', background: isDragging ? '#2563eb' : 'transparent', flexShrink: 0, zIndex: 10, transition: 'background 150ms ease' }}
+          />
+        )}
 
         {/* 3D canvas */}
         <main style={{ flex: 1, position: 'relative' }}>
