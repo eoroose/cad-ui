@@ -1,13 +1,23 @@
 import React, { Suspense, useEffect } from 'react';
 import * as THREE from 'three';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, PerformanceMonitor } from '@react-three/drei';
 import SceneLoader from './SceneLoader';
+import { updateGnomonCamera } from './gnomonBridge';
+import GnomonCanvas from './GnomonCanvas';
 import { useCadStore } from '../../store/cadStore';
 
 function LoadingFallback() {
   return null; // Canvas handles loading state via Suspense
+}
+
+/** Copies main camera quaternion into the gnomon bridge ref each frame. */
+function CameraSync() {
+  useFrame(({ camera }) => {
+    updateGnomonCamera(camera.quaternion as THREE.Quaternion);
+  });
+  return null;
 }
 
 function SceneBackground() {
@@ -26,7 +36,7 @@ export default function CADCanvas() {
   const isDark = bgMode === 'dark';
 
   return (
-    <div style={{ width: '100%', height: '100%', background: isDark ? '#0f0f0f' : '#f0f0f0' }}>
+    <div style={{ width: '100%', height: '100%', background: isDark ? '#0f0f0f' : '#f0f0f0', position: 'relative' }}>
       <Canvas
         camera={{ fov: 45, position: [5, 5, 5], near: 0.01, far: 10000 }}
         gl={{ antialias: true }}
@@ -57,6 +67,8 @@ export default function CADCanvas() {
           {/* Controls */}
           <OrbitControls makeDefault enableDamping dampingFactor={0.05} />
 
+          <CameraSync />
+
           {/* Scene */}
           {scene?.mergedGlbUrl && (
             <Suspense fallback={<LoadingFallback />}>
@@ -65,6 +77,10 @@ export default function CADCanvas() {
           )}
         </PerformanceMonitor>
       </Canvas>
+
+      <div style={{ position: 'absolute', bottom: '8px', left: '8px', width: '100px', height: '100px', zIndex: 10, pointerEvents: 'none' }}>
+        <GnomonCanvas />
+      </div>
 
       {!scene && (
         <div style={{
