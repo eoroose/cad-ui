@@ -78,7 +78,7 @@ export default function CADCanvas() {
         </PerformanceMonitor>
       </Canvas>
 
-      <div style={{ position: 'absolute', bottom: '8px', left: '8px', width: '100px', height: '100px', zIndex: 10, pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', bottom: '8px', left: '8px', width: '120px', height: '120px', zIndex: 10, pointerEvents: 'none' }}>
         <GnomonCanvas />
       </div>
 
