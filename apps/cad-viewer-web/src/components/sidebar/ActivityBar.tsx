@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { Layers, GitMerge } from 'lucide-react';
+import LayersIcon from '@mui/icons-material/Layers';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
 
 interface ActivityBarProps {
   activePanel: 'models' | 'assembly' | null;
@@ -109,7 +110,7 @@ export function ActivityBar({ activePanel, onSelect }: ActivityBarProps) {
           onBlur={() => setFocused(null)}
           onKeyDown={(e) => handleKeyDown(e, 'models')}
         >
-          <Layers size={20} color={getIconColor('models')} strokeWidth={1.75} />
+          <LayersIcon style={{ fontSize: 20, color: getIconColor('models') }} />
         </button>
 
         {/* Assembly button */}
@@ -126,7 +127,7 @@ export function ActivityBar({ activePanel, onSelect }: ActivityBarProps) {
           onBlur={() => setFocused(null)}
           onKeyDown={(e) => handleKeyDown(e, 'assembly')}
         >
-          <GitMerge size={20} color={getIconColor('assembly')} strokeWidth={1.75} />
+          <AccountTreeIcon style={{ fontSize: 20, color: getIconColor('assembly') }} />
         </button>
       </div>
     </nav>
