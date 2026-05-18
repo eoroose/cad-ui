@@ -6,6 +6,12 @@ interface CadStore {
   nodes: SceneNodeDTO[];
   selectedNodeId: string | null;
   hoveredNodeId: string | null;
+  visibilityOverrides: Record<string, boolean>;
+  wireframeOverrides: Record<string, boolean>;
+  transparencyOverrides: Record<string, boolean>;
+  toggleVisibility: (id: string) => void;
+  toggleWireframe: (id: string) => void;
+  toggleTransparency: (id: string) => void;
   activeJobId: string | null;
   activeSceneId: string | null;
   fitCameraVersion: number;
@@ -26,6 +32,9 @@ export const useCadStore = create<CadStore>((set) => ({
   nodes: [],
   selectedNodeId: null,
   hoveredNodeId: null,
+  visibilityOverrides: {},
+  wireframeOverrides: {},
+  transparencyOverrides: {},
   activeJobId: null,
   activeSceneId: null,
   fitCameraVersion: 0,
@@ -37,6 +46,21 @@ export const useCadStore = create<CadStore>((set) => ({
   setBgMode: (mode) => set({ bgMode: mode }),
   setActiveJob: (jobId, sceneId) => set({ activeJobId: jobId, activeSceneId: sceneId }),
   clearActiveJob: () => set({ activeJobId: null, activeSceneId: null }),
+  toggleVisibility: (id) => set((s) => {
+    const next = { ...s.visibilityOverrides };
+    if (next[id] === false) delete next[id]; else next[id] = false;
+    return { visibilityOverrides: next };
+  }),
+  toggleWireframe: (id) => set((s) => {
+    const next = { ...s.wireframeOverrides };
+    if (next[id] === true) delete next[id]; else next[id] = true;
+    return { wireframeOverrides: next };
+  }),
+  toggleTransparency: (id) => set((s) => {
+    const next = { ...s.transparencyOverrides };
+    if (next[id] === true) delete next[id]; else next[id] = true;
+    return { transparencyOverrides: next };
+  }),
   activePanel: 'models',
   setActivePanel: (panel) => set({ activePanel: panel }),
 }));

@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { useCadStore } from '../../store/cadStore';
 import type { SceneNodeDTO } from '@cad/shared-types';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import BorderOuterIcon from '@mui/icons-material/BorderOuter';
+import OpacityIcon from '@mui/icons-material/Opacity';
 
 interface TreeNodeProps {
   node: SceneNodeDTO;
@@ -10,9 +14,20 @@ interface TreeNodeProps {
 
 function TreeNode({ node, allNodes, depth }: TreeNodeProps) {
   const [expanded, setExpanded] = useState(true);
+  const [rowHovered, setRowHovered] = useState(false);
   const selectedNodeId = useCadStore((s) => s.selectedNodeId);
   const setSelectedNode = useCadStore((s) => s.setSelectedNode);
   const setHoveredNode = useCadStore((s) => s.setHoveredNode);
+  const visibilityOverrides = useCadStore((s) => s.visibilityOverrides);
+  const wireframeOverrides = useCadStore((s) => s.wireframeOverrides);
+  const transparencyOverrides = useCadStore((s) => s.transparencyOverrides);
+  const toggleVisibility = useCadStore((s) => s.toggleVisibility);
+  const toggleWireframe = useCadStore((s) => s.toggleWireframe);
+  const toggleTransparency = useCadStore((s) => s.toggleTransparency);
+
+  const isHidden = visibilityOverrides[node.id] === false;
+  const isWireframe = wireframeOverrides[node.id] === true;
+  const isTransparent = transparencyOverrides[node.id] === true;
 
   const children = allNodes.filter((n) => n.parentId === node.id);
   const hasChildren = children.length > 0;
@@ -25,8 +40,8 @@ function TreeNode({ node, allNodes, depth }: TreeNodeProps) {
           setSelectedNode(isSelected ? null : node.id);
           console.log('Selected node:', node.name, node.id);
         }}
-        onMouseEnter={() => setHoveredNode(node.id)}
-        onMouseLeave={() => setHoveredNode(null)}
+        onMouseEnter={() => { setHoveredNode(node.id); setRowHovered(true); }}
+        onMouseLeave={() => { setHoveredNode(null); setRowHovered(false); }}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -37,6 +52,7 @@ function TreeNode({ node, allNodes, depth }: TreeNodeProps) {
           color: isSelected ? '#93c5fd' : '#ccc',
           fontSize: '0.85rem',
           userSelect: 'none',
+          position: 'relative',
         }}
       >
         {hasChildren && (
@@ -51,6 +67,44 @@ function TreeNode({ node, allNodes, depth }: TreeNodeProps) {
         <span title={node.name} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {node.name}
         </span>
+
+        <div
+          style={{
+            position: 'absolute',
+            right: '4px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            display: 'flex',
+            gap: '2px',
+            opacity: (rowHovered || isHidden || isWireframe || isTransparent) ? 1 : 0,
+            transition: 'opacity 150ms ease',
+            pointerEvents: (rowHovered || isHidden || isWireframe || isTransparent) ? 'auto' : 'none',
+          }}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleVisibility(node.id); }}
+            title={isHidden ? 'Show' : 'Hide'}
+            style={{ background: isHidden ? '#ef4444' : 'transparent', border: 'none', cursor: 'pointer', padding: '2px', borderRadius: '2px', color: isHidden ? '#fff' : '#9ca3af', lineHeight: 1, display: 'flex', alignItems: 'center' }}
+          >
+            {isHidden
+              ? <VisibilityOffIcon style={{ fontSize: 14 }} />
+              : <VisibilityIcon style={{ fontSize: 14 }} />}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleWireframe(node.id); }}
+            title={isWireframe ? 'Disable Outline' : 'Show Outline'}
+            style={{ background: isWireframe ? '#3b82f6' : 'transparent', border: 'none', cursor: 'pointer', padding: '2px', borderRadius: '2px', color: isWireframe ? '#fff' : '#9ca3af', lineHeight: 1, display: 'flex', alignItems: 'center' }}
+          >
+            <BorderOuterIcon style={{ fontSize: 14 }} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleTransparency(node.id); }}
+            title={isTransparent ? 'Disable Transparency' : 'Make Transparent'}
+            style={{ background: isTransparent ? '#8b5cf6' : 'transparent', border: 'none', cursor: 'pointer', padding: '2px', borderRadius: '2px', color: isTransparent ? '#fff' : '#9ca3af', lineHeight: 1, display: 'flex', alignItems: 'center' }}
+          >
+            <OpacityIcon style={{ fontSize: 14 }} />
+          </button>
+        </div>
       </div>
 
       {expanded && hasChildren && children.map((child) => (

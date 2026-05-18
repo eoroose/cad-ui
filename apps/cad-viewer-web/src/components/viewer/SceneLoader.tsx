@@ -14,6 +14,9 @@ export default function SceneLoader({ glbUrl }: Props) {
   const hoveredNodeId = useCadStore((s) => s.hoveredNodeId);
   const selectedNodeId = useCadStore((s) => s.selectedNodeId);
   const fitCameraVersion = useCadStore((s) => s.fitCameraVersion);
+  const visibilityOverrides = useCadStore((s) => s.visibilityOverrides);
+  const wireframeOverrides = useCadStore((s) => s.wireframeOverrides);
+  const transparencyOverrides = useCadStore((s) => s.transparencyOverrides);
   const { camera, controls } = useThree();
 
   useEffect(() => {
@@ -41,6 +44,8 @@ export default function SceneLoader({ glbUrl }: Props) {
         obj.material = obj.material.clone();
         obj.userData.materialCloned = true;
         obj.userData.originalEmissive = obj.material.emissive.getHex();
+        obj.userData.originalOpacity = obj.material.opacity;
+        obj.userData.originalTransparent = obj.material.transparent;
       }
     });
   }, [gltfScene, nodes]);
@@ -59,6 +64,61 @@ export default function SceneLoader({ glbUrl }: Props) {
       }
     });
   }, [hoveredNodeId, selectedNodeId, gltfScene]);
+
+  useEffect(() => {
+    if (!gltfScene) return;
+    gltfScene.traverse((obj) => {
+      if (!(obj instanceof THREE.Mesh) || !obj.userData.sceneNodeId) return;
+      const id = obj.userData.sceneNodeId as string;
+      const mat = obj.material;
+
+      const isHidden = visibilityOverrides[id] === false;
+      const hasOutline = wireframeOverrides[id] === true;
+      const isTransparent = transparencyOverrides[id] === true;
+
+      // Outline: remove existing edge overlay, then re-add if enabled.
+      // Green + thicker when outline is active (color differentiates from default white edges).
+      const existing = obj.children.filter((c) => c.userData.isOutline);
+      existing.forEach((c) => {
+        obj.remove(c);
+        (c as THREE.LineSegments).geometry?.dispose();
+        ((c as THREE.LineSegments).material as THREE.Material)?.dispose();
+      });
+      if (hasOutline) {
+        const edges = new THREE.EdgesGeometry(obj.geometry, 15);
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x4ade80, depthTest: false, linewidth: 2 });
+        const outline = new THREE.LineSegments(edges, lineMat);
+        outline.userData.isOutline = true;
+        obj.add(outline);
+      }
+
+      // Visibility:
+      // - Hidden + no outline  → obj.visible = false (nothing renders)
+      // - Hidden + outline     → obj.visible = true so child LineSegments render;
+      //                          mesh is made invisible via opacity = 0
+      // - Visible              → obj.visible = true, normal material
+      if (isHidden && !hasOutline) {
+        obj.visible = false;
+        return;
+      }
+      obj.visible = true;
+
+      if (!(mat instanceof THREE.MeshStandardMaterial)) return;
+
+      if (isHidden && hasOutline) {
+        // Mesh fully transparent so only the green outline is seen
+        mat.transparent = true;
+        mat.opacity = 0;
+        mat.needsUpdate = true;
+        return;
+      }
+
+      // Normal visible state: apply transparency toggle
+      mat.transparent = isTransparent || (obj.userData.originalTransparent as boolean);
+      mat.opacity = isTransparent ? 0.25 : (obj.userData.originalOpacity as number);
+      mat.needsUpdate = true;
+    });
+  }, [visibilityOverrides, wireframeOverrides, transparencyOverrides, gltfScene]);
 
   useEffect(() => {
     // STEP files use Z-up; GLTF/Three.js uses Y-up. Rotate on the object itself
